@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "udp",
+    "name": "UDP Connect",
     "slug": "udp",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -26,6 +26,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "887f4e20-4329-4f48-b764-0a926638ce52"
+      }
     }
   }
 }

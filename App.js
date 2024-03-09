@@ -102,6 +102,9 @@ const getStyles = (theme) =>
     },
   });
 
+// const client = dgram.createSocket("udp4");
+// client.bind();
+
 const AppContent = () => {
   const { theme, toggleTheme } = useTheme(); // Use the theme and toggleTheme
   const styles = getStyles(theme); // Get styles based on the current theme
@@ -118,6 +121,10 @@ const AppContent = () => {
   // response and logs
   const [logMessages, setLogMessages] = useState([]);
 
+  // socket
+  const [receiverSocket, setReceiverSocket] = useState(null); 
+  const [clientSocket, setClientSocket] = useState(null); 
+
   const Header = () => {
     return (
       <View style={styles.headerContainer}>
@@ -125,6 +132,95 @@ const AppContent = () => {
       </View>
     );
   };
+
+  // Helper function to validate IP address
+  const validateIP = (ip) => {
+    return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip);
+  };
+
+  // Helper function to validate port number
+  const validatePort = (port) => {
+    return port > 0 && port <= 65535;
+  };
+
+  //------------------------------------------------------------------------------------
+  useEffect(() => {
+    if (!isListening) {
+      return;
+    }
+
+    const newSocket = dgram.createSocket("udp4");
+    setReceiverSocket(newSocket); 
+    const port = parseInt(receiverPort, 10);
+    newSocket.bind(port);
+
+    newSocket.on("error", (err) => {
+      newSocket.close();
+      setIsListening(false);
+    });
+
+    newSocket.on("message", (msg, rinfo) => {
+      setLogMessages((prevLogMessages) => {
+        const tmp = {
+          address: rinfo.address,
+          port: rinfo.port,
+          message: msg.toString(),
+        };
+        return [tmp, ...prevLogMessages];
+      });
+    });
+
+    newSocket.on("listening", () => {
+      setIsListening(true);
+    });
+
+    return () => {
+      if (newSocket) {
+        newSocket.close();
+      }
+      setIsListening(false);
+    };
+  }, [isListening, receiverPort]); 
+  
+  const handleListen = () => {
+    setIsListening((current) => !current);
+  };
+
+  useEffect(() => {
+    const client = dgram.createSocket("udp4");
+    setClientSocket(client); // Store the client socket in state
+
+    // Binding the client to a specific port, if necessary, can be done here
+    client.bind();
+
+    return () => {
+      client.close();
+    };
+  }, []); 
+
+  const handleSend = () => {
+    const port = parseInt(targetPort, 10);
+    if (!validatePort(port) || !validateIP(targetIP)) {
+      console.error("Invalid IP address or port number");
+      return;
+    }
+
+    const message = Buffer.from(messageToSend);
+
+    if (clientSocket) {
+      clientSocket.send(message, 0, message.length, port, targetIP, (err) => {
+        if (err) {
+          console.error(`Error while sending message: ${err.message}`);
+        } else {
+          console.log(`Message sent successfully to ${targetIP}:${port}`);
+        }
+      });
+    } else {
+      console.error("Client socket does not exist or is not connected.");
+    }
+  };
+  //------------------------------------------------------------------------------------
+/*
   // Function to handle UDP listening
   const handleListen = () => {
     if (isListening) {
@@ -171,8 +267,8 @@ const AppContent = () => {
   const handleSend = () => {
     const message = Buffer.from(messageToSend);
     const port = parseInt(targetPort, 10); // Ensure the port is an integer
-    if (isNaN(port) || port <= 0 || port > 65535) {
-      console.error("Invalid port number:", targetPort);
+    if (!validatePort(port) || !validateIP(targetIP)) {
+      console.error("Invalid IP address or port number");
       return;
     }
     client.send(message, undefined, message.length, port, targetIP, (err) => {
@@ -183,7 +279,7 @@ const AppContent = () => {
       }
     });
   };
-
+*/
   const placeholderTextColor = theme === "dracula" ? "#fff" : "#000";
   return (
     <SafeAreaView style={styles.safeArea}>
