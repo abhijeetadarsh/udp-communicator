@@ -5,10 +5,10 @@ const ThemeContext = createContext();
 export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState('light'); // 'light' or 'dracula'
+  const [theme, setTheme] = useState('dark'); // 'light' or 'dark'
 
   const toggleTheme = () => {
-    setTheme((currentTheme) => (currentTheme === 'light' ? 'dracula' : 'light'));
+    setTheme((currentTheme) => (currentTheme === 'light' ? 'dark' : 'light'));
   };
 
   return (

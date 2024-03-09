@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Toast from "react-native-toast-message";
 import {
   View,
   Text,
@@ -30,23 +31,22 @@ const getStyles = (theme) =>
     container: {
       flex: 1,
       padding: 25,
-      backgroundColor: theme === "dracula" ? "#282a36" : "#f4f4f4",
+      backgroundColor: theme === "dark" ? "#282a36" : "#f4f4f4",
     },
     input: {
       borderWidth: 1,
-      borderColor: theme === "dracula" ? "#6272a4" : "#ccc",
+      borderColor: theme === "dark" ? "#6272a4" : "#ccc",
       borderRadius: 8,
       padding: 12,
       fontSize: 16,
-      backgroundColor: theme === "dracula" ? "#44475a" : "#fff",
-      color: theme === "dracula" ? "#f8f8f2" : "#333",
+      backgroundColor: theme === "dark" ? "#44475a" : "#fff",
+      color: theme === "dark" ? "#f8f8f2" : "#333",
     },
-    // Add more styles as needed
     section: {
       marginTop: 20,
     },
     sectionTitle: {
-      color: theme === "dracula" ? "#f8f8f2" : "#333",
+      color: theme === "dark" ? "#f8f8f2" : "#333",
       fontSize: 20,
       fontWeight: "bold",
       marginBottom: 10,
@@ -64,7 +64,7 @@ const getStyles = (theme) =>
       marginBottom: 20,
     },
     inputLabel: {
-      color: theme === "dracula" ? "#f8f8f2" : "#333",
+      color: theme === "dark" ? "#f8f8f2" : "#333",
       fontSize: 16,
       marginBottom: 5,
     },
@@ -89,21 +89,18 @@ const getStyles = (theme) =>
       marginBottom: 10,
     },
     logMessageHeading: {
-      color: theme === "dracula" ? "#f8f8f2" : "#333",
+      color: theme === "dark" ? "#f8f8f2" : "#333",
       fontWeight: "bold",
       marginBottom: 5,
     },
     logMessage: {
-      color: theme === "dracula" ? "#f8f8f2" : "#333",
+      color: theme === "dark" ? "#f8f8f2" : "#333",
       fontSize: 16,
     },
     safeArea: {
       flex: 1,
     },
   });
-
-// const client = dgram.createSocket("udp4");
-// client.bind();
 
 const AppContent = () => {
   const { theme, toggleTheme } = useTheme(); // Use the theme and toggleTheme
@@ -122,26 +119,44 @@ const AppContent = () => {
   const [logMessages, setLogMessages] = useState([]);
 
   // socket
-  const [receiverSocket, setReceiverSocket] = useState(null); 
-  const [clientSocket, setClientSocket] = useState(null); 
+  const [receiverSocket, setReceiverSocket] = useState(null);
+  const [clientSocket, setClientSocket] = useState(null);
 
   const Header = () => {
     return (
       <View style={styles.headerContainer}>
-        <Text style={styles.headerText}>📡 UDP Communicator</Text>
+        <Text style={styles.headerText}>📡 UDP Connect</Text>
       </View>
     );
   };
 
   // Helper function to validate IP address
   const validateIP = (ip) => {
-    return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip);
+    return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(
+      ip
+    );
   };
 
   // Helper function to validate port number
   const validatePort = (port) => {
     return port > 0 && port <= 65535;
   };
+
+  function logAndShow(message) {
+    console.log(message); // Log to the console as usual
+    Toast.show({
+      type: "info",
+      text1: "Log Message",
+      text2: JSON.stringify(message, null, 2),
+      position: "bottom",
+      visibilityTime: 4000,
+    });
+  }
+
+  // if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === "production") {
+    console.log = () => {};
+  }
 
   //------------------------------------------------------------------------------------
   useEffect(() => {
@@ -150,7 +165,7 @@ const AppContent = () => {
     }
 
     const newSocket = dgram.createSocket("udp4");
-    setReceiverSocket(newSocket); 
+    setReceiverSocket(newSocket);
     const port = parseInt(receiverPort, 10);
     newSocket.bind(port);
 
@@ -180,8 +195,8 @@ const AppContent = () => {
       }
       setIsListening(false);
     };
-  }, [isListening, receiverPort]); 
-  
+  }, [isListening, receiverPort]);
+
   const handleListen = () => {
     setIsListening((current) => !current);
   };
@@ -196,12 +211,13 @@ const AppContent = () => {
     return () => {
       client.close();
     };
-  }, []); 
+  }, []);
 
   const handleSend = () => {
     const port = parseInt(targetPort, 10);
     if (!validatePort(port) || !validateIP(targetIP)) {
       console.error("Invalid IP address or port number");
+      logAndShow(`Invalid IP address or port number`);
       return;
     }
 
@@ -211,16 +227,18 @@ const AppContent = () => {
       clientSocket.send(message, 0, message.length, port, targetIP, (err) => {
         if (err) {
           console.error(`Error while sending message: ${err.message}`);
+          logAndShow(`Error while sending message`);
         } else {
           console.log(`Message sent successfully to ${targetIP}:${port}`);
         }
       });
     } else {
       console.error("Client socket does not exist or is not connected.");
+      logAndShow(`Client socket does not exist or is not connected.`);
     }
   };
   //------------------------------------------------------------------------------------
-/*
+  /*
   // Function to handle UDP listening
   const handleListen = () => {
     if (isListening) {
@@ -280,17 +298,13 @@ const AppContent = () => {
     });
   };
 */
-  const placeholderTextColor = theme === "dracula" ? "#fff" : "#000";
+  const placeholderTextColor = theme === "dark" ? "#fff" : "#000";
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar backgroundColor="#007AFF" barStyle="light-content" />
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <Header />
-        <StatusBar
-          backgroundColor="#007AFF"
-          barStyle="light-content"
-        />
         <View style={styles.container}>
-          {/* Add a button to toggle the theme */}
           <CustomButton title="Toggle Theme" onPress={toggleTheme} />
 
           <View style={styles.section}>
@@ -366,6 +380,7 @@ const AppContent = () => {
               ))}
             </ScrollView>
           </View>
+          <Toast />
         </View>
       </ScrollView>
     </SafeAreaView>
